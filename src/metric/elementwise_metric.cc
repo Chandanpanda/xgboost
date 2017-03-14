@@ -187,6 +187,117 @@ struct EvalTweedieNLogLik: public EvalEWiseBase<EvalTweedieNLogLik> {
   bst_float rho_;
 };
 
+        void calc_dn(
+                const std::vector<bool> &conversion_event,
+                const std::vector<bst_ulong> &time_to_convert,
+                bst_ulong max_time,
+                std::vector<bst_ulong> *out_dn
+        ){
+            for (size_t i=0;i <time_to_convert.size(); ++i){
+                auto event = conversion_event[i];
+                auto time = time_to_convert[i];
+                if (event){
+                    out_dn->at(time)+=1;
+                }
+            }
+        }
+
+  void calc_second_part_denom(
+          const std::vector<bst_float> &exp_preds,
+          bst_ulong max_time,
+          const std::vector<bst_ulong> &time_to_convert,
+          std::vector<bst_float> *out_second_part_denom
+  )
+  {
+     for (size_t t=0; t< out_second_part_denom->size();++t)
+      {
+          bst_float out_second_part_denom_t = 0.0f;
+          for (size_t i=0; i<time_to_convert.size(); ++i){
+              if (time_to_convert[i] >= t){
+                  out_second_part_denom_t += exp_preds[i];
+              }
+          }
+          out_second_part_denom->at(t) = out_second_part_denom_t;
+      }
+  }
+
+  
+        void calc_second_part_denom_optimized(
+                const std::vector<bst_float> &exp_preds,
+                bst_ulong max_time,
+                const std::vector<bst_ulong> &time_to_convert,
+                std::vector<bst_float> *out_second_part_denom) {
+            auto prev_time = max_time;
+            auto sum_y = 0.0f;
+            for (int i = time_to_convert.size() - 1; i >= 0; --i) {
+                auto time = time_to_convert[i];
+                if (prev_time != time) {
+                    for (int t = prev_time; t > time; --t) {
+                        (*out_second_part_denom)[t] = sum_y;
+                    }
+                }
+                sum_y += exp_preds[i];
+                prev_time = time;
+            }
+            for (int t = prev_time; t >= 0; --t) {
+                (*out_second_part_denom)[t] = sum_y;
+            }
+        }
+        float get_log_likelihood(
+                const std::vector<bool> &conversion_event,
+                const std::vector<bst_float> &second_part_denom,
+                const std::vector<bst_ulong> &d,
+                const std::vector<bst_float > &preds,
+                bst_ulong max_time
+        ){
+            float second_part = 0.0f;
+            for (size_t n=0; n < d.size(); ++n)
+            {
+                if (d[n]==0){
+                    continue;
+                }
+                second_part+=d[n] * std::log(second_part_denom[n]);
+
+            }
+            float first_part = 0.0f;
+            for (size_t i=0;i <preds.size(); ++i){
+                if (conversion_event[i]){
+                    first_part += std::log(preds[i]);
+                }
+            }
+            return second_part - first_part;
+        }
+        struct EvalPartialLikelihood : public Metric {
+
+            bst_float Eval(const std::vector<bst_float> &preds,
+                           const MetaInfo &info,
+                           bool distributed) const override {
+                CHECK(!distributed) << "metric Partial Likelihood do not support distributed evaluation";
+                std::vector<bst_float> exp_preds(preds);
+                for (size_t i = 0; i < exp_preds.size(); ++i) {
+                    exp_preds[i] = std::exp(exp_preds[i]);
+                }
+                std::vector<bst_ulong> time_to_convert(info.labels.begin(), info.labels.end());
+                std::vector<bool> conversion_event(info.censor.begin(), info.censor.end());
+                auto max_time = *std::max_element(time_to_convert.begin(), time_to_convert.end());
+                std::vector<bst_ulong> d_n(max_time+1, 0);
+                std::vector<bst_float> second_part_denom(max_time+1, 0.0f);
+                std::vector<bst_float> second_part_denom_opt(max_time+1, 0.0f);
+
+                std::vector<bst_float> second_part(max_time+1, 0.0f);
+                calc_dn(conversion_event, time_to_convert, max_time, &d_n);
+                //calc_second_part_denom_optimized(exp_preds, max_time, time_to_convert, &second_part_denom);
+                calc_second_part_denom(exp_preds, max_time, time_to_convert, &second_part_denom);
+ 
+                auto partial_likelihood = get_log_likelihood(conversion_event, second_part_denom, d_n, exp_preds, max_time);
+                return partial_likelihood;
+            }
+            const char *Name() const override {
+                return "partial_likelihood";
+            }
+        };
+
+
 XGBOOST_REGISTER_METRIC(RMSE, "rmse")
 .describe("Rooted mean square error.")
 .set_body([](const char* param) { return new EvalRMSE(); });
@@ -220,6 +331,12 @@ XGBOOST_REGISTER_METRIC(TweedieNLogLik, "tweedie-nloglik")
 .set_body([](const char* param) {
   return new EvalTweedieNLogLik(param);
 });
+
+        XGBOOST_REGISTER_METRIC(PartialLikelihood, "partial_likelihood")
+                .describe("Cox Proprotional Hazard Partial Likelihood.")
+                .set_body([](const char* param) { return new EvalPartialLikelihood(); });
+
+
 
 }  // namespace metric
 }  // namespace xgboost

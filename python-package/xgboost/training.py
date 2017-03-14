@@ -237,7 +237,7 @@ def mknfold(dall, nfold, param, seed, evals=(), fpreproc=None, stratified=False,
             idx = np.arange(dall.num_row())
         kstep = int(len(idx) / nfold)
         idset = [idx[(i * kstep): min(len(idx), (i + 1) * kstep)] for i in range(nfold)]
-    elif folds is not None and isinstance(folds, list):
+    elif folds is not None: # and isinstance(folds, list):
         idset = [x[1] for x in folds]
         nfold = len(idset)
     else:

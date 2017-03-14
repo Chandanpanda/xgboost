@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <utility>
 #include "../common/math.h"
+#include <cstdio>
 
 namespace xgboost {
 namespace obj {
@@ -90,6 +91,14 @@ class RegLossObj : public ObjFunction {
     CHECK_EQ(preds.size(), info.labels.size())
         << "labels are not correctly provided"
         << "preds.size=" << preds.size() << ", label.size=" << info.labels.size();
+    auto flag = false;
+    for (auto& entry : preds) {
+        if (std::isnan(entry) || std::isinf(entry)) {
+            flag = true;
+        }
+    }
+    std::printf("preds flag = %d\n", flag);
+
     out_gpair->resize(preds.size());
     // check if label in range
     bool label_correct = true;

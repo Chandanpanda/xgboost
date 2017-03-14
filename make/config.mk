@@ -60,4 +60,6 @@ GTEST_PATH =
 # uncomment the following lines to include these plugins
 # you can also add your own plugin like this
 #
+
 # XGB_PLUGINS += plugin/example/plugin.mk
+XGB_PLUGINS += plugin/cox_ph/plugin.mk

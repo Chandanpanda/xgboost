@@ -410,6 +410,9 @@ XGB_DLL int XGDMatrixSliceDMatrix(DMatrixHandle handle,
     if (src.info.labels.size() != 0) {
       ret.info.labels.push_back(src.info.labels[ridx]);
     }
+    if (src.info.censor.size() != 0) {
+      ret.info.censor.push_back(src.info.censor[ridx]);
+    }
     if (src.info.weights.size() != 0) {
       ret.info.weights.push_back(src.info.weights[ridx]);
     }

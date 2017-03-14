@@ -221,7 +221,7 @@ class DMatrix(object):
 
     def __init__(self, data, label=None, missing=None,
                  weight=None, silent=False,
-                 feature_names=None, feature_types=None):
+                 feature_names=None, feature_types=None, censor=None):
         """
         Data matrix used in XGBoost.
 
@@ -274,6 +274,8 @@ class DMatrix(object):
                 raise TypeError('can not initialize DMatrix from {}'.format(type(data).__name__))
         if label is not None:
             self.set_label(label)
+        if censor is not None:
+            self.set_censor(censor)
         if weight is not None:
             self.set_weight(weight)
 
@@ -433,6 +435,9 @@ class DMatrix(object):
             The label information to be set into DMatrix
         """
         self.set_float_info('label', label)
+    def set_censor(self, censor):
+        self.set_float_info('censor', censor)
+  
 
     def set_weight(self, weight):
         """ Set weight of each instance.
@@ -480,6 +485,18 @@ class DMatrix(object):
         label : array
         """
         return self.get_float_info('label')
+    def get_censor(self):
+        """Get the label of the DMatrix.
+
+        Returns
+        -------
+        label : array
+        """
+        import pdb;pdb.set_trace()
+        return self.get_float_info('censor')
+
+
+
 
     def get_weight(self):
         """Get the weight of the DMatrix.

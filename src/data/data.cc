@@ -117,6 +117,10 @@ void MetaInfo::SetInfo(const char* key, const void* dptr, DataType dtype, size_t
     labels.resize(num);
     DISPATCH_CONST_PTR(dtype, dptr, cast_dptr,
                        std::copy(cast_dptr, cast_dptr + num, labels.begin()));
+  } else if (!std::strcmp(key, "censor")) {
+    censor.resize(num);
+    DISPATCH_CONST_PTR(dtype, dptr, cast_dptr,
+                       std::copy(cast_dptr, cast_dptr + num, censor.begin()));
   } else if (!std::strcmp(key, "weight")) {
     weights.resize(num);
     DISPATCH_CONST_PTR(dtype, dptr, cast_dptr,

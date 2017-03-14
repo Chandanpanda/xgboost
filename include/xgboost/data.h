@@ -38,6 +38,7 @@ struct MetaInfo {
   uint64_t num_nonzero;
   /*! \brief label of each instance */
   std::vector<bst_float> labels;
+  std::vector<bst_float> censor;
   /*!
    * \brief specified root index of each instance,
    *  can be used for multi task setting
