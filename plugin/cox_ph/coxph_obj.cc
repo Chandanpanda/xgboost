@@ -58,8 +58,8 @@ class CoxPH : public ObjFunction {
      // calc_second_part_denom_optimized(exp_preds, max_time, time_to_convert, &second_part_denom);
  
       std::vector<bst_float> grad_second_part(max_time+1, 0.0f);
-      std::vector<bst_float> hess_part(max_time+1, 0.0f);
-      calc_second_part(d_n, second_part_denom, max_time, &grad_second_part, &hess_part);
+      std::vector<bst_float> hess_second_part(max_time+1, 0.0f);
+      calc_second_part(d_n, second_part_denom, max_time, &grad_second_part, &hess_second_part);
 
       // info.label contains conversion_event
       out_gpair->resize(preds.size());
@@ -68,11 +68,11 @@ class CoxPH : public ObjFunction {
           auto event = conversion_event[i];
 
           bst_float grad = grad_second_part[time] * exp_preds[i];
+          bst_float hess = grad - hess_second_part[time] * exp_preds[i] * exp_preds[i];
+
           if (event){
                 grad = grad - 1.0f;
           }
-
-          bst_float hess = hess_part[time] * exp_preds[i];
 
           out_gpair->at(i) = bst_gpair(grad, hess);
         }
@@ -98,7 +98,7 @@ class CoxPH : public ObjFunction {
           const std::vector<bst_float> &second_part_denom,
           bst_ulong max_time,
           std::vector<bst_float> *grad_second_part,
-          std::vector<bst_float> *hess_part
+          std::vector<bst_float> *hess_second_part
   )
   {
       for (bst_ulong t=0; t <= max_time ; ++t)
@@ -112,7 +112,7 @@ class CoxPH : public ObjFunction {
               grad_second_part_t_2+= div1 / second_part_denom[n];
           }
           grad_second_part->at(t) = grad_second_part_t;
-          hess_part->at(t) = grad_second_part_t - grad_second_part_t_2;
+          hess_second_part->at(t) = grad_second_part_t_2;
       }
   }
 
